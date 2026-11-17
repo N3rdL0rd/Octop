@@ -8,6 +8,7 @@ from dataclasses import dataclass, field
 
 from octop.infra.db.pool import DatabasePool
 from octop.infra.db.repos._base import DbRow, bool_int, insert_returning_id, map_rows, now_ts
+from octop.infra.utils.locale import DEFAULT_LOCALE
 
 
 def _parse_permissions(raw: object) -> builtins.list[str]:
@@ -116,7 +117,7 @@ class UserRepo:
         password_hash: str | None = None,
         role: str,
         display_name: str | None = None,
-        locale: str = "zh",
+        locale: str = DEFAULT_LOCALE,
         email: str | None = None,
         sso_provider_id: int | None = None,
         sso_subject: str | None = None,

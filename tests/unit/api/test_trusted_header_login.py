@@ -12,6 +12,7 @@ from tests.support.auth import TEST_PASSWORD, bearer, bootstrap_admin
 from octop.api.app import build_app
 from octop.infra.auth.trusted_header import TrustedHeaderConfig
 from octop.infra.server import OctopServer
+from octop.infra.utils.locale import DEFAULT_LOCALE
 
 SECRET = "s3cret-value"
 
@@ -86,6 +87,8 @@ async def test_disabled_without_env(tmp_path: Path, monkeypatch: pytest.MonkeyPa
 async def test_provisions_once_and_token_works(client) -> None:
     first = await client.post("/api/auth/proxy/login", headers=_headers())
     assert first.status_code == 200
+    # New proxy accounts follow the deployment's default language (OCTOP_DEFAULT_LOCALE).
+    assert first.json()["user"]["locale"] == DEFAULT_LOCALE
     me = await client.get("/api/auth/me", headers=bearer(first.json()["access_token"]))
     assert me.status_code == 200
     assert me.json()["role"] == "user"
