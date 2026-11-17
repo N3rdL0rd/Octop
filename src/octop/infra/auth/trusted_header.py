@@ -9,7 +9,8 @@ caller that reaches Octop around the proxy cannot mint an identity by setting
 Configuration is environment-only (no stored secret, nothing for the admin UI
 to leak):
 
-* ``OCTOP_TRUSTED_HEADER_SECRET`` - required; the feature is off when unset.
+* ``OCTOP_TRUSTED_HEADER_SECRET`` (or ``..._SECRET_FILE`` naming a file, e.g. a
+  docker secret) - required; the feature is off when neither yields a value.
 * ``OCTOP_TRUSTED_HEADER_SECRET_HEADER`` - default ``X-Proxy-Secret``.
 * ``OCTOP_TRUSTED_HEADER_ID_HEADER`` - stable subject, default ``X-User-Id``.
 * ``OCTOP_TRUSTED_HEADER_NAME_HEADER`` - display name, default ``X-User-Name``.
@@ -26,12 +27,16 @@ to leak):
 from __future__ import annotations
 
 import hmac
+import logging
 import os
 from collections.abc import Mapping
 from dataclasses import dataclass
+from pathlib import Path
 
 from octop.infra.errors import ErrorCode, OctopError
 from octop.infra.users.identity import Role, User
+
+logger = logging.getLogger(__name__)
 
 PROXY_KIND = "proxy"
 _MAX_SUBJECT_LENGTH = 128
@@ -59,6 +64,16 @@ class TrustedHeaderConfig:
         """The configuration, or ``None`` when no shared secret is set."""
         source = os.environ if env is None else env
         secret = (source.get("OCTOP_TRUSTED_HEADER_SECRET") or "").strip()
+        secret_file = (source.get("OCTOP_TRUSTED_HEADER_SECRET_FILE") or "").strip()
+        if not secret and secret_file:
+            try:
+                secret = Path(secret_file).read_text(encoding="utf-8").strip()
+            except OSError:
+                # Fail closed (header login off) rather than raising: this runs on
+                # the password login path too, and a bad mount must not lock out
+                # the break-glass admin.
+                logger.exception("cannot read trusted header secret file %s", secret_file)
+                return None
         if not secret:
             return None
 

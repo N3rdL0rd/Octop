@@ -189,7 +189,11 @@ RUN if [ "$OCTOP_IMAGE_VARIANT" = "lite" ]; then \
       bash /usr/local/bin/bake-desktop.sh; \
     fi
 
-RUN mkdir -p /data/.octop
+# valgrind fork: run unprivileged. HOME=/data, so ~/.octop is the volume mount.
+RUN useradd --uid 1000 --user-group --no-create-home --home-dir /data octop \
+    && mkdir -p /data/.octop \
+    && chown -R octop:octop /data
+USER octop
 
 EXPOSE 8088
 

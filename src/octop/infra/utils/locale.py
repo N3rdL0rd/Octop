@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import os
 from typing import Literal
 
 Locale = Literal["zh", "en"]
 
-DEFAULT_LOCALE: Locale = "zh"
+# valgrind fork: deployments choose the fallback language (upstream is always zh).
+DEFAULT_LOCALE: Locale = (
+    "en" if os.environ.get("OCTOP_DEFAULT_LOCALE", "").strip().lower() == "en" else "zh"
+)
 SUPPORTED_LOCALES: tuple[Locale, ...] = ("zh", "en")
 
 

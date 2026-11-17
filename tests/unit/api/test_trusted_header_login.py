@@ -44,6 +44,18 @@ def test_config_off_without_secret() -> None:
     assert TrustedHeaderConfig.from_env({"OCTOP_TRUSTED_HEADER_SECRET": "  "}) is None
 
 
+def test_secret_from_file(tmp_path: Path) -> None:
+    f = tmp_path / "secret"
+    f.write_text("from-file\n")
+    cfg = TrustedHeaderConfig.from_env({"OCTOP_TRUSTED_HEADER_SECRET_FILE": str(f)})
+    assert cfg is not None and cfg.secret == "from-file"
+    # An unreadable secret file disables header login instead of raising.
+    assert (
+        TrustedHeaderConfig.from_env({"OCTOP_TRUSTED_HEADER_SECRET_FILE": str(tmp_path / "nope")})
+        is None
+    )
+
+
 async def test_requires_exact_secret_and_subject(client) -> None:
     for bad in (
         {"X-User-Id": "1001"},
