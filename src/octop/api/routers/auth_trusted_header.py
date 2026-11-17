@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, Request
 
 from octop.api.deps import get_server
 from octop.api.routers.auth import _user_json
+from octop.infra.auth.llm_provisioning import LlmGatewayConfig, ensure_user_provider
 from octop.infra.auth.mfa import MfaService
 from octop.infra.auth.trusted_header import (
     TrustedHeaderAuthService,
@@ -40,6 +41,9 @@ async def proxy_login(request: Request, server: Any = Depends(get_server)) -> di
     server.services.audit_repo.write(
         actor=user.username, action="auth.proxy_login", target=user.username
     )
+    llm = LlmGatewayConfig.from_env()
+    if llm is not None:
+        await ensure_user_provider(server, user, discord_id=identity.subject, config=llm)
     token, ttl = MfaService(server.services).mint_access_token(user)
     return {
         "access_token": token,

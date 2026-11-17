@@ -365,11 +365,40 @@ async def set_active_model(
 
 @router.get("")
 async def list_providers(
-    _: Any = Depends(current_user),
+    user: Any = Depends(current_user),
     server: Any = Depends(get_server),
 ) -> list[dict[str, Any]]:
-    """Return all providers. Read-only for regular users."""
-    return [_row_to_dict(r) for r in server.services.provider_repo.list_all()]
+    """Return the providers the caller may see. Read-only for regular users.
+
+    valgrind fork: upstream returned every provider *with its API key* to any
+    signed-in user. Non-admins now only get providers that have at least one
+    model visible to them (providers without models stay visible), and never
+    receive the key.
+    """
+    rows = server.services.provider_repo.list_all()
+    if user.is_admin:
+        return [_row_to_dict(r) for r in rows]
+    access = GroupAccess(server.services.repos)
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        payload = _row_to_dict(row)
+        models = [
+            m
+            for m in payload["models"]
+            if access.allows(
+                user_id=user.id,
+                is_admin=False,
+                resource_type=RESOURCE_MODEL,
+                resource_key=model_resource_key(row.name, str(m.get("id") or "")),
+                is_owner=False,
+            )
+        ]
+        if payload["models"] and not models:
+            continue
+        payload["models"] = models
+        payload["api_key"] = None
+        out.append(payload)
+    return out
 
 
 # ── Admin endpoints ─────────────────────────────────────────────────────────

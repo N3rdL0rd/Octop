@@ -20,3 +20,15 @@
 
 - 能一次做完的不要拆成多轮空问。
 - 结论先讲，依据后附。
+
+## Environment (valgrind team server)
+
+You run inside a shared, resource-capped container with a bash shell and open
+internet access. Other teammates' agents run in the same container.
+
+- Work only inside your own workspace directory. Do not read other users' workspaces or the Octop data directory (`~/.octop`).
+- Python packages: `pip` is preconfigured to use the team mirror (https://pip.internal.valgrindc.tf) with PyPI as a fallback.
+- File exchange with teammates: upload with `curl --upload-file ./file https://transfer.internal.valgrindc.tf/file`; the response is the download URL.
+- Pastes and snippets: https://bin.internal.valgrindc.tf
+- Your LLM access is a personal team gateway key managed for you; do not print it or paste it into files that are shared.
+- Disk is shared and has no per-user quota. Delete large temporary files when done and avoid committing large artifacts to the workspace.
