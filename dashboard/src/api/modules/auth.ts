@@ -400,6 +400,15 @@ export const authApi = {
     return toLoginResult(raw);
   },
 
+  /**
+   * Sign in from reverse-proxy identity headers (valgrind fork). Resolves with a
+   * token only when the proxy supplied a valid identity; rejects (401) otherwise.
+   */
+  proxyLogin: async (): Promise<LoginResult> =>
+    toLoginResult(
+      await request<RawLoginResponse>("/auth/proxy/login", { method: "POST" }),
+    ),
+
   /** Return whether the configured OIDC provider can accept logins. */
   getOidcStatus: () => request<OidcStatus>("/auth/oidc/status"),
 

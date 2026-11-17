@@ -13,6 +13,7 @@ from octop.api.common.client_ip import resolve_client_ip
 from octop.api.deps import ACCESS_TOKEN_RESPONSE_HEADER, current_user, get_server
 from octop.infra.auth.captcha import current_env, ensure_captcha, load_effective, public_config
 from octop.infra.auth.mfa import MfaService
+from octop.infra.auth.trusted_header import TrustedHeaderConfig
 from octop.infra.errors import ErrorCode, OctopError
 from octop.infra.users.email import normalize_email
 from octop.infra.users.permissions import effective_permissions
@@ -191,6 +192,14 @@ async def login(
     """
     if server.user_manager.count() == 0:
         raise OctopError(ErrorCode.SETUP_REQUIRED, "initial admin not created")
+    proxy = TrustedHeaderConfig.from_env()
+    if (
+        proxy is not None
+        and proxy.local_login_users
+        and body.username not in proxy.local_login_users
+    ):
+        # Proxy SSO is the front door; password login stays only for break-glass accounts.
+        raise OctopError(ErrorCode.AUTH_FAILED, "invalid credentials")
     server.user_manager.raise_if_login_locked(body.username)
     effective = load_effective(
         server.services.settings_repo,

@@ -62,6 +62,7 @@ import { isDesktopShell } from "../../utils/desktopBridge";
 // Per page load, not per mount: the point is to stop a renew/refuse cycle from
 // ping-ponging between /login and /chat.
 let desktopAutoLoginTried = false;
+let proxyLoginTried = false;
 
 type MfaStepMode = "totp" | "recovery" | "passkey";
 
@@ -185,6 +186,25 @@ export default function LoginPage() {
     return () => {
       cancelled = true;
     };
+  }, [navigate]);
+
+  // Reverse-proxy SSO: when the proxy has already authenticated the user the
+  // backend hands back a token and the form never shows. `?local` opts out so a
+  // break-glass admin can still reach the password form.
+  useEffect(() => {
+    if (proxyLoginTried) return;
+    proxyLoginTried = true;
+    if (new URLSearchParams(window.location.search).has("local")) return;
+    void authApi
+      .proxyLogin()
+      .then((result) => {
+        if (isMfaChallenge(result)) return;
+        setAuthToken(result.access_token, true);
+        navigate("/chat", { replace: true });
+      })
+      .catch(() => {
+        // No proxy identity: fall through to the normal form.
+      });
   }, [navigate]);
 
   useEffect(() => {

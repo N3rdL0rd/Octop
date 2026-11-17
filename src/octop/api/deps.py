@@ -67,6 +67,8 @@ _JWT_EXEMPT_EXACT = (
     "/api/auth/oauth/callback",
     "/api/auth/oauth/exchange",
     "/api/auth/ldap/status",
+    "/api/auth/proxy/status",
+    "/api/auth/proxy/login",
     "/api/auth/invite/validate",
     "/api/auth/invite/redeem",
     "/api/docs",
